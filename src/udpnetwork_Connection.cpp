@@ -2,6 +2,7 @@
 #include "udpnetwork_Network.h"
 
 #include <iostream>
+#include <sstream>
 
 using namespace udp_network;
 
@@ -79,7 +80,7 @@ std::list<ReliablePacket>& Connection::getReliable(unsigned currentTime)
     return mReliablePackets;
 }
 
-void Connection::acquireReceivedBuffer(Buffer* b, unsigned currentTime)
+void Connection::addReceivedBuffer(Buffer* b, unsigned currentTime)
 {
     mHeartbeat = currentTime;
 
@@ -137,7 +138,7 @@ void Connection::sendPing(unsigned currentTime)
     send()->setType(PT_PING);
 }
 
-void Connection::sendPong()
+void Connection::handlePing()
 {
     send()->setType(PT_PONG);
 }
@@ -158,4 +159,12 @@ void Connection::clear()
 void Connection::disconnect()
 {
     mNetwork->disconnect(this);
+}
+
+
+std::string Connection::printInfo()
+{
+    std::stringstream ss;
+    ss << mEndpoint;
+    return ss.str();
 }

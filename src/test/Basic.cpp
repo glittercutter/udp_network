@@ -1,5 +1,5 @@
-#include "../Connection.h"
-#include "../Network.h"
+#include "../udpnetwork_Connection.h"
+#include "../udpnetwork_Network.h"
 #include "../utils/ReplicatedVariable.h"
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -97,7 +97,7 @@ void sendMessage()
     }
     else
     {
-        (*g_connections.begin())->disconnect();
+        //(*g_connections.begin())->disconnect();
     }
 
     ++count;
@@ -109,9 +109,11 @@ void receiveMessage()
     for (auto cit : g_connections)
     {
         auto& buffs = cit->getReceivedBuffers();
-        for (auto bptr : buffs)
+        for (auto buff : buffs)
         {
-            auto& b = *bptr;
+            auto& b = *buff;
+
+            std::cout<<__PRETTY_FUNCTION__<<std::endl;
 
             unsigned char packetHeader;
             b>>packetHeader; // Read packet type

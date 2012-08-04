@@ -54,28 +54,60 @@ public:
     typedef boost::array<byte, Size> Data;
     static const unsigned short InvalidBoolByteIt = -1;
 
-    //
+    struct BoolIterator
+    {
+        BoolIterator(unsigned bytePos, byte bitPos)
+        :   BytePosition(bytePos), BitPosition(bitPos) {}
+        unsigned BytePosition;
+        byte BitPosition;
+    };
+
+    struct ByteIterator
+    {
+        ByteIterator(unsigned bytePos)
+        :   BytePosition(bytePos) {}
+        unsigned BytePosition;
+    };
+
+    bool eof() { return mByteIt >= mSize-1; }
+
+    void eraseLastByte();
+    void eraseLastShort();
+    void eraseLastInt();
+    void eraseLastFloat();
+
     // Write
+    inline Buffer& operator << (const bool val) { writeBool(&val); return *this; }
     //
-    Buffer& operator << (const bool val) { writeBool(&val); return *this; }
+    inline Buffer& operator << (const int8_t val) { write8(&val); return *this; }
+    inline Buffer& operator << (const uint8_t val) { write8(&val); return *this; }
+    //
+    inline Buffer& operator << (const int16_t val) { write16(&val); return *this; }
+    inline Buffer& operator << (const uint16_t val) { write16(&val); return *this; }
+    //
+    inline Buffer& operator << (const int32_t val) { write32(&val); return *this; }
+    inline Buffer& operator << (const uint32_t val) { write32(&val); return *this; }
+    //
+    inline Buffer& operator << (const float val) { writeFloat(&val); return *this; }
+    inline Buffer& operator << (const std::string& val) { writeString(val); return *this; }
 
-    Buffer& operator << (const int8_t val) { write8(&val); return *this; }
-    Buffer& operator << (const uint8_t val) { write8(&val); return *this; }
+    inline void writeBool(const bool val) { writeBool(&val); }
+    inline void writeByte(const byte val) { write8(&val); }
+    inline void writeShort(const short val) { write16(&val); }
+    inline void writeInt(const int val) { write32(&val); }
+    inline void writeFloat(const float val) { writeFloat(&val); }
 
-    Buffer& operator << (const int16_t val) { write16(&val); return *this; }
-    Buffer& operator << (const uint16_t val) { write16(&val); return *this; }
+    inline BoolIterator writeBoolIt(const bool val) { return writeBoolIt(&val); }
+    inline ByteIterator writeByteIt(const byte val) { return write8It(&val); }
+    inline ByteIterator writeShortIt(const short val) { return write16It(&val); }
+    inline ByteIterator writeIntIt(const int val) { return write32It(&val); }
+    inline ByteIterator writeFloatIt(const float val) { return writeFloatIt(&val); }
 
-    Buffer& operator << (const int32_t val) { write32(&val); return *this; }
-    Buffer& operator << (const uint32_t val) { write32(&val); return *this; }
-
-    Buffer& operator << (const float val) { writeFloat(&val); return *this; }
-    Buffer& operator << (const std::string& val) { writeString(val); return *this; }
-
-    void writeBool(const bool val) { writeBool(&val); }
-    void writeByte(const byte val) { write8(&val); }
-    void writeShort(const short val) { write16(&val); }
-    void writeInt(const int val) { write32(&val); }
-    void writeFloat(const float val) { writeFloat(&val); }
+    inline void writeBoolAt(const bool val, const BoolIterator& it) { write__Bool__At(&val,it); } // Differrent function name, pointer interpretted as bool
+    inline void writeByteAt(const byte val, const ByteIterator& it) { write8At(&val,it); }
+    inline void writeShortAt(const short val, const ByteIterator& it) { write16At(&val,it); }
+    inline void writeIntAt(const int val, const ByteIterator& it) { write32At(&val,it); }
+    inline void writeFloatAt(const float val, const ByteIterator& it) { writeFloatAt(&val,it); }
 
     // Containers
     template <class T>
@@ -88,37 +120,43 @@ public:
         return *this;
     }
 
-    //
     // Read
+    inline Buffer& operator >> (bool& val) { readBool(&val); return *this; }
     //
-    Buffer& operator >> (bool& val) { readBool(&val); return *this; }
+    inline Buffer& operator >> (int8_t& val) { read8(&val); return *this; }
+    inline Buffer& operator >> (uint8_t& val) { read8(&val); return *this; }
+    //
+    inline Buffer& operator >> (int16_t& val) { read16(&val); return *this; }
+    inline Buffer& operator >> (uint16_t& val) { read16(&val); return *this; }
+    //
+    inline Buffer& operator >> (int32_t& val) { read32(&val); return *this; }
+    inline Buffer& operator >> (uint32_t& val) { read32(&val); return *this; }
+    //
+    inline Buffer& operator >> (float& val) { readFloat(&val); return *this; }
+    inline Buffer& operator >> (std::string& val) { readString(val); return *this; }
 
-    Buffer& operator >> (int8_t& val) { read8(&val); return *this; }
-    Buffer& operator >> (uint8_t& val) { read8(&val); return *this; }
+    // By reference argument
+    inline void readBool(bool& val) { readBool(&val); }
+    inline void readByte(byte& val) { read8(&val); }
+    inline void readShort(short& val) { read16(&val); }
+    inline void readInt(int& val) { read32(&val); }
+    inline void readFloat(float& val) { readFloat(&val); }
 
-    Buffer& operator >> (int16_t& val) { read16(&val); return *this; }
-    Buffer& operator >> (uint16_t& val) { read16(&val); return *this; }
+    // By return value
+    inline bool readBool() { bool val; readBool(&val); return val; }
+    inline byte readByte() { byte val; read8(&val); return val; }
+    inline short readShort() { short val; read16(&val); return val; }
+    inline int readInt() { int val; read32(&val); return val; }
+    inline float readFloat() { float val; readFloat(&val); return val; }
 
-    Buffer& operator >> (int32_t& val) { read32(&val); return *this; }
-    Buffer& operator >> (uint32_t& val) { read32(&val); return *this; }
+    // Peek without increasing the internal iterator
+    inline byte peekByte() { byte val; peek8(&val); return val; }
+    inline short peekShort() { short val; peek16(&val); return val; }
+    inline int peekInt() { int val; peek32(&val); return val; }
+    inline float peekFloat() { float val; peekFloat(&val); return val; }
+    inline std::string peekString() { return peekString(); }
 
-    Buffer& operator >> (float& val) { readFloat(&val); return *this; }
-    Buffer& operator >> (std::string& val) { readString(val); return *this; }
-
-    void readBool(bool& val) { readBool(&val); }
-    void readByte(byte& val) { read8(&val); }
-    void readShort(short& val) { read16(&val); }
-    void readInt(int& val) { read32(&val); }
-    void readFloat(float& val) { readFloat(&val); }
-
-    // Alternative returning value
-    bool readBool() { bool val; readBool(&val); return val; }
-    byte readByte() { byte val; read8(&val); return val; }
-    short readShort() { short val; read16(&val); return val; }
-    int readInt() { int val; read32(&val); return val; }
-    float readFloat() { float val; readFloat(&val); return val; }
-
-    // Containers
+    // Container helpers
     template <class T>
     Buffer& operator >> (std::vector<T> v)
     {
@@ -133,17 +171,38 @@ public:
         }
         return *this;
     }
-    
+
     // ********************************************************************
-    // The functions below shoudn't need to be used from ouside the library
+    // Those functions shoudn't need to be used by the user.
     // ********************************************************************
 
     void writeBool(const bool* v);
+    BoolIterator writeBoolIt(const bool* v);
+    void write__Bool__At(const bool* v, const BoolIterator& it);
+
     void write8(const void* v);
+    ByteIterator write8It(const void* v);
+    void write8At(const void* v, const ByteIterator& it);
+
     void write16(const void* v);
+    ByteIterator write16It(const void* v);
+    void write16At(const void* v, const ByteIterator& it);
+
     void write32(const void* v);
+    ByteIterator write32It(const void* v);
+    void write32At(const void* v, const ByteIterator& it);
+
     void writeFloat(const float* v);
+    ByteIterator writeFloatIt(const float* v);
+    void writeFloatAt(const float* v, const ByteIterator& it);
+
     void writeString(const std::string& v);
+
+    void peek8(void* v);
+    void peek16(void* v);
+    void peek32(void* v);
+    void peekFloat(void* v);
+    void peekString(std::string& v);
 
     void readBool(bool* v);
     void read8(void* v);

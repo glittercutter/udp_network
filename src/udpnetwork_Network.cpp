@@ -18,7 +18,8 @@ Network::Network(
     mConnectionTimeout(5000),
     mPingRetryDelay(1000),
     mConnectionRequestRetryDelay(1000),
-    mCurrentTime(currentTime)
+    mCurrentTime(currentTime),
+    bUpdateInProgress(false)
 {
     mSocket.non_blocking(true);
 }
@@ -39,11 +40,14 @@ void Network::disconnect(Connection* c)
 
 void Network::update(unsigned long currentTime)
 {
+    bUpdateInProgress = true;
     mCurrentTime = currentTime;
-    boost::system::error_code ec;
+    boost::system::error_code errorCode;
     boost::asio::ip::udp::endpoint endpoint;
 
+    ////////////////////////
     // Send packet for all connection
+    ////////////////////////
     for (auto cit = mConnections.begin(); cit != mConnections.end(); )
     {
         Connection* c = cit->second;
@@ -57,6 +61,7 @@ void Network::update(unsigned long currentTime)
         {
             destroyConnection(c, "connection timeout");
             ++cit;
+            c->clear();
             continue;
         }
         else if (c->getHeartbeat() + mResponseTimeout <= currentTime &&
@@ -67,23 +72,28 @@ void Network::update(unsigned long currentTime)
 
         // Unreliable
         {
-            auto& packetLs = c->getUnreliable(currentTime);
-            for (UnreliablePacket& p : packetLs)
+            auto& packets = c->getUnreliable(currentTime);
+            for (UnreliablePacket& p : packets)
             {
                 p.buffer.finalize();
-                mSocket.send_to(boost::asio::buffer(p.buffer.data(), p.buffer.size()), c->getEndpoint(), 0, ec);
+                mSocket.send_to(
+                    boost::asio::buffer(p.buffer.data(), p.buffer.size()),
+                    c->getEndpoint(), 0, errorCode);
             }
         }
 
         // Reliable
         {
-            auto& packetLs = c->getReliable(currentTime);
-            for (ReliablePacket& p : packetLs)
+            auto& packets = c->getReliable(currentTime);
+            for (ReliablePacket& p : packets)
             {
                 if (currentTime - p.time > c->getPing())
                 {
                     p.buffer.finalize();
-                    mSocket.send_to(boost::asio::buffer(p.buffer.data(), p.buffer.size()), c->getEndpoint(), 0, ec);
+                    mSocket.send_to(
+                        boost::asio::buffer(p.buffer.data(), p.buffer.size()),
+                        c->getEndpoint(), 0, errorCode);
+
                     p.time = currentTime;
                 }
             }
@@ -97,17 +107,19 @@ void Network::update(unsigned long currentTime)
     {
         mSocket.send_to(
             boost::asio::buffer(b.buffer.data(), b.buffer.size()),
-            b.endpoint, 0, ec);
+            b.endpoint, 0, errorCode);
     }
     mAddressedPackets.clear();
 
+    ////////////////////////
     // Receive
+    ////////////////////////
     Buffer* buffer = newBuffer();
     while (42)
     {
         buffer->size(mSocket.receive_from(
             boost::asio::buffer(buffer->data(), Buffer::Size),
-            endpoint, 0, ec));
+            endpoint, 0, errorCode));
 
         if (!buffer->size()) break; // Nothing was received
 
@@ -124,7 +136,7 @@ void Network::update(unsigned long currentTime)
         switch (buffer->getType())
         {
             case PT_PING:
-                if (connection) connection->sendPong();
+                if (connection) connection->handlePing();
                 break;
 
             case PT_PONG:
@@ -140,7 +152,7 @@ void Network::update(unsigned long currentTime)
                 {
                     // The buffer ownership is transfered to the connection
                     // TODO ???? eliminate this and use a callback for the connection to parse the packet ???????
-                    connection->acquireReceivedBuffer(buffer, currentTime);
+                    connection->addReceivedBuffer(buffer, currentTime);
                     buffer = newBuffer(); // Get a new one
                 }
                 break;
@@ -150,6 +162,9 @@ void Network::update(unsigned long currentTime)
         }
     }
     releaseBuffer(buffer);
+
+    bUpdateInProgress = false;
+    runQueuedJobs();
 }
 
 void Network::handleConnection(Buffer* buffer, const boost::asio::ip::udp::endpoint& endpoint)
@@ -200,6 +215,12 @@ Connection* Network::createConnection(const boost::asio::ip::udp::endpoint& endp
 
 void Network::destroyConnection(Connection* c, const std::string& info/* = ""*/)
 {
+    if (bUpdateInProgress)
+    {
+        mQueuedJobs.push_back(std::bind(&Network::destroyConnection,this,c,info));
+        return;
+    }
+
     mDisconnectionCb(c);
 
     auto b = send(c->getEndpoint());
@@ -281,4 +302,16 @@ Buffer* Network::newBuffer()
 void Network::releaseBuffer(Buffer* b)
 {
     mBuffers.push_back(b);
+}
+
+
+void Network::runQueuedJobs()
+{
+    if (bUpdateInProgress) return;
+
+    while (!mQueuedJobs.empty()) 
+    {
+        mQueuedJobs.front()();
+        mQueuedJobs.pop_front();
+    }
 }

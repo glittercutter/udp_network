@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Packet.h"
+#include "../udpnetwork_Packet.h"
 #include <iostream>
 
 namespace udp_network

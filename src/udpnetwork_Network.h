@@ -46,6 +46,8 @@ protected:
     void requestConnection(Connection*);
     void refuseConnection(const boost::asio::ip::udp::endpoint& endpoint, const std::string& info = "");
 
+    void runQueuedJobs();
+
     Buffer* send(const boost::asio::ip::udp::endpoint& endpoint); // AddressedPacket
 
     // NOTE: 'releaseBuffer' must be called before the returned buffer is discarded to avoid memory leak
@@ -59,6 +61,7 @@ protected:
 
     std::unordered_map<boost::asio::ip::udp::endpoint, Connection*> mConnections;
     std::vector<AddressedPacket> mAddressedPackets;
+    std::list<std::function<void()>> mQueuedJobs;
 
     ConnectionRequestCb mConnectionRequestCb;
     DisconnectionCb mDisconnectionCb;
@@ -68,6 +71,8 @@ protected:
     unsigned mPingRetryDelay;
     unsigned mConnectionRequestRetryDelay;
     unsigned mCurrentTime;
+
+    bool bUpdateInProgress;
 };
 
 } // udp_network

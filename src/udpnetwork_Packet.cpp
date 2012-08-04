@@ -6,6 +6,31 @@ using namespace udp_network;
  * Buffer
  */
 
+
+void Buffer::eraseLastByte()
+{
+    --mByteIt;
+    mSize = mByteIt;
+}
+
+void Buffer::eraseLastShort()
+{
+    mByteIt -= sizeof(int16_t);
+    mSize = mByteIt;
+}
+
+void Buffer::eraseLastInt()
+{
+    mByteIt -= sizeof(int32_t);
+    mSize = mByteIt;
+}
+
+void Buffer::eraseLastFloat()
+{
+    mByteIt -= sizeof(float);
+    mSize = mByteIt;
+}
+
 void Buffer::setReliable(bool state)
 {
     if (state) mData[PacketTypePosition] |= PF_RELIABLE;
@@ -94,18 +119,49 @@ std::string Buffer::debugHeader()
     return ss.str();
 }
 
+//
+
 void Buffer::writeBool(const bool* v)
 {
     incrementBool(true);
     *((byte*)&mData[mBoolByteIt]) |= *v << mBoolBitIt++;
-    std::cout<<byteToString(mData[mBoolByteIt])<<" bytenum:"<<mBoolByteIt<<std::endl;
 }
+
+Buffer::BoolIterator Buffer::writeBoolIt(const bool* v)
+{
+    incrementBool(true);
+    BoolIterator it(mByteIt,mBoolBitIt);
+    *((byte*)&mData[mBoolByteIt]) |= *v << mBoolBitIt++;
+    return it;
+}
+
+void Buffer::write__Bool__At(const bool* v, const BoolIterator& it)
+{
+    *((byte*)&mData[it.BytePosition]) |= *v << it.BitPosition;
+}
+
+//
 
 void Buffer::write8(const void* v)
 {
     mData[mByteIt++] = *(const uint8_t*)v;
     mSize = mByteIt;
 }
+
+Buffer::ByteIterator Buffer::write8It(const void* v)
+{
+    ByteIterator it(mByteIt);
+    mData[mByteIt++] = *(const uint8_t*)v;
+    mSize = mByteIt;
+    return it;
+}
+
+void Buffer::write8At(const void* v, const ByteIterator& it)
+{
+    mData[it.BytePosition] = *(const uint8_t*)v;
+}
+
+//
 
 void Buffer::write16(const void* v)
 {
@@ -114,6 +170,22 @@ void Buffer::write16(const void* v)
     mSize = mByteIt;
 }
 
+Buffer::ByteIterator Buffer::write16It(const void* v)
+{
+    ByteIterator it(mByteIt);
+    *((Number_t*)&mData[mByteIt]) = *(const uint16_t*)v;
+    mByteIt += sizeof(uint16_t);
+    mSize = mByteIt;
+    return it;
+}
+
+void Buffer::write16At(const void* v, const ByteIterator& it)
+{
+    *((Number_t*)&mData[it.BytePosition]) = *(const uint16_t*)v;
+}
+
+//
+
 void Buffer::write32(const void* v)
 {
     *((Number_t*)&mData[mByteIt]) = *(const uint32_t*)v;
@@ -121,12 +193,44 @@ void Buffer::write32(const void* v)
     mSize = mByteIt;
 }
 
+Buffer::ByteIterator Buffer::write32It(const void* v)
+{
+    ByteIterator it(mByteIt);
+    *((Number_t*)&mData[mByteIt]) = *(const uint32_t*)v;
+    mByteIt += sizeof(Number_t);
+    mSize = mByteIt;
+    return it;
+}
+
+void Buffer::write32At(const void* v, const ByteIterator& it)
+{
+    *((Number_t*)&mData[it.BytePosition]) = *(const uint32_t*)v;
+}
+
+//
+
 void Buffer::writeFloat(const float* v)
 {
     *((float*)&mData[mByteIt]) = *v;
     mByteIt += sizeof(Number_t);
     mSize = mByteIt;
 }
+
+Buffer::ByteIterator Buffer::writeFloatIt(const float* v)
+{
+    ByteIterator it(mByteIt);
+    *((float*)&mData[mByteIt]) = *v;
+    mByteIt += sizeof(Number_t);
+    mSize = mByteIt;
+    return it;
+}
+
+void Buffer::writeFloatAt(const float* v, const ByteIterator& it)
+{
+    *((float*)&mData[it.BytePosition]) = *v;
+}
+
+//
 
 void Buffer::writeString(const std::string& v)
 {
@@ -147,6 +251,12 @@ void Buffer::read8(void* v)
     *(uint8_t*)v = mData[mByteIt++];
 }
 
+void Buffer::read16(void* v)
+{
+    *(uint16_t*)v = mData[mByteIt];
+    mByteIt += sizeof(uint16_t);
+}
+
 void Buffer::read32(void* v)
 {
     *(uint32_t*)v = *(uint32_t*)&mData[mByteIt];
@@ -163,6 +273,31 @@ void Buffer::readString(std::string& v)
 {
     v = (char*)&mData[mByteIt];
     mByteIt += v.size() + 1;
+}
+
+void Buffer::peek8(void* v)
+{
+    *(uint8_t*)v = mData[mByteIt];
+}
+
+void Buffer::peek16(void* v)
+{
+    *(uint16_t*)v = mData[mByteIt];
+}
+
+void Buffer::peek32(void* v)
+{
+    *(uint32_t*)v = *(uint32_t*)&mData[mByteIt];
+}
+
+void Buffer::peekFloat(void* v)
+{
+    *(float*)v = *(float*)&mData[mByteIt];
+}
+
+void Buffer::peekString(std::string& v)
+{
+    v = (char*)&mData[mByteIt];
 }
 
 void Buffer::incrementBool(bool write/* = false*/)

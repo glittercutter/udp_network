@@ -3,9 +3,9 @@ project (test)
 
 set (SRC
     src/test/Basic.cpp
-    src/udp_network_Network.cpp
-    src/udp_network_Connection.cpp
-    src/udp_network_Packet.cpp
+    src/udpnetwork_Network.cpp
+    src/udpnetwork_Connection.cpp
+    src/udpnetwork_Packet.cpp
 )
 
 find_library (BOOST_SYSTEM_LIBRARY file boost_system)

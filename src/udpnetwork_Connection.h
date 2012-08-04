@@ -34,13 +34,15 @@ public:
     bool isConnected() { return mIsConnected; }
     void disconnect();
 
+    std::string printInfo();
+
 protected:
     std::vector<UnreliablePacket>& getUnreliable(unsigned currentTime);
     std::list<ReliablePacket>& getReliable(unsigned currentTime);
-    void acquireReceivedBuffer(Buffer*, unsigned currentTime);
+    void addReceivedBuffer(Buffer*, unsigned currentTime);
     
     void sendPing(unsigned currentTime);
-    void sendPong();
+    void handlePing();
     void handlePong(unsigned currentTime);
 
     void ack(unsigned short id);
