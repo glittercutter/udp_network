@@ -69,7 +69,9 @@ public:
         unsigned BytePosition;
     };
 
-    bool eof() { return mByteIt >= mSize-1; }
+    Buffer() { clear(); }
+
+    bool eof();
 
     void eraseLastByte();
     void eraseLastShort();
@@ -211,8 +213,6 @@ public:
     void readFloat(float* v);
     void readString(std::string& v);
 
-    Buffer() { clear(); }
-
     Data& data() { return mData; }
     std::size_t size() { return mSize; }
 
@@ -257,6 +257,10 @@ struct UnreliablePacket : public Packet
 
 struct ReliablePacket : public Packet
 {
+    ReliablePacket()
+    : wasSent(false), time(0) {}
+
+    bool wasSent;
     unsigned time;
 };
 

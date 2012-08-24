@@ -6,7 +6,6 @@ using namespace udp_network;
  * Buffer
  */
 
-
 void Buffer::eraseLastByte()
 {
     --mByteIt;
@@ -66,10 +65,9 @@ PacketId Buffer::getId() const
     return *(PacketId*)&mData[PacketIdPosition];
 }
 
-// Should be called after writing any data
+// Should be called after the data writing stage
 void Buffer::addAck(PacketId id)
 {
-    mData[PacketTypePosition] |= PF_HAS_ACK;
     write16(&id);   
     ++mNumberOfAck;
 }
@@ -87,7 +85,7 @@ bool Buffer::hasAck()
 
 PacketId Buffer::getAck(byte i)
 {
-    return *(PacketId*)&mData[mData.size()-1 - getAckCount()*sizeof(PacketId)];
+    return *(PacketId*)&mData[mSize-1 - getAckCount()*sizeof(PacketId) + i*sizeof(PacketId)];
 }
 
 void Buffer::clear()
@@ -243,7 +241,6 @@ void Buffer::readBool(bool* v)
 {
     incrementBool();
     *v = (mData[mBoolByteIt] >> mBoolBitIt++) & 1;
-    std::cout<<byteToString(mData[mBoolByteIt])<<" bytenum:"<<mBoolByteIt<<std::endl;
 }
 
 void Buffer::read8(void* v)
@@ -306,11 +303,21 @@ void Buffer::incrementBool(bool write/* = false*/)
     {
         mBoolBitIt = 0;
         mBoolByteIt = mByteIt++;
+        mSize = mByteIt;
         if (write) mData[mBoolByteIt] = 0;
     }
 }
 
 void Buffer::finalize()
 {
-    if (mNumberOfAck) write8(&mNumberOfAck);
+    if (mNumberOfAck)
+    {
+        mData[PacketTypePosition] |= PF_HAS_ACK;
+        write8(&mNumberOfAck);
+    }
+}
+
+bool Buffer::eof()
+{
+    return mByteIt >= mSize-1 - 1 - getAckCount()*sizeof(PacketId);
 }

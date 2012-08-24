@@ -40,6 +40,7 @@ void Network::disconnect(Connection* c)
 
 void Network::update(unsigned long currentTime)
 {
+    std::cout<<__PRETTY_FUNCTION__<<std::endl;
     bUpdateInProgress = true;
     mCurrentTime = currentTime;
     boost::system::error_code errorCode;
@@ -61,7 +62,7 @@ void Network::update(unsigned long currentTime)
         {
             destroyConnection(c, "connection timeout");
             ++cit;
-            c->clear();
+            //c->clear();
             continue;
         }
         else if (c->getHeartbeat() + mResponseTimeout <= currentTime &&
@@ -70,41 +71,14 @@ void Network::update(unsigned long currentTime)
             c->sendPing(currentTime);
         }
 
-        // Unreliable
-        {
-            auto& packets = c->getUnreliable(currentTime);
-            for (UnreliablePacket& p : packets)
-            {
-                p.buffer.finalize();
-                mSocket.send_to(
-                    boost::asio::buffer(p.buffer.data(), p.buffer.size()),
-                    c->getEndpoint(), 0, errorCode);
-            }
-        }
-
-        // Reliable
-        {
-            auto& packets = c->getReliable(currentTime);
-            for (ReliablePacket& p : packets)
-            {
-                if (currentTime - p.time > c->getPing())
-                {
-                    p.buffer.finalize();
-                    mSocket.send_to(
-                        boost::asio::buffer(p.buffer.data(), p.buffer.size()),
-                        c->getEndpoint(), 0, errorCode);
-
-                    p.time = currentTime;
-                }
-            }
-        }
-        
-        c->clear();
+        c->send(currentTime, mSocket);
         ++cit;
     }
 
+    // Send packet to unconnected endpoint
     for (auto& b : mAddressedPackets)
     {
+        std::cout<<"Sending addressed packet"<<std::endl;
         mSocket.send_to(
             boost::asio::buffer(b.buffer.data(), b.buffer.size()),
             b.endpoint, 0, errorCode);
@@ -117,19 +91,26 @@ void Network::update(unsigned long currentTime)
     Buffer* buffer = newBuffer();
     while (42)
     {
+
         buffer->size(mSocket.receive_from(
             boost::asio::buffer(buffer->data(), Buffer::Size),
             endpoint, 0, errorCode));
 
         if (!buffer->size()) break; // Nothing was received
 
+        std::cout<<"Packet received"<<std::endl;
+
         Connection* connection = getConnection(endpoint);
         if (connection) 
         {
+            std::cout<<"Ack received: "<<(unsigned)buffer->getAckCount()<<std::endl;
             if (buffer->hasAck())
             {
                 for (unsigned char i = 0; i < buffer->getAckCount(); i++)
+                {
+                    std::cout<<"Ack received: id:"<<buffer->getAck(i)<<std::endl;
                     connection->ack(buffer->getAck(i));
+                }
             }
         }
 
@@ -152,7 +133,7 @@ void Network::update(unsigned long currentTime)
                 {
                     // The buffer ownership is transfered to the connection
                     // TODO ???? eliminate this and use a callback for the connection to parse the packet ???????
-                    connection->addReceivedBuffer(buffer, currentTime);
+                    connection->addIncomingBuffer(buffer, currentTime);
                     buffer = newBuffer(); // Get a new one
                 }
                 break;
@@ -250,6 +231,7 @@ void Network::refuseConnection(const boost::asio::ip::udp::endpoint& endpoint, c
 
 void Network::requestConnection(Connection* c)
 {
+    std::cout<<"Requesting connection -- "<<c->printInfo()<<std::endl;
     auto b = c->send();
     b->setType(PT_CONNECTION);
     b->writeByte(CM_REQUEST);

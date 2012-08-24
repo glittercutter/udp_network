@@ -20,7 +20,7 @@ public:
     ~Connection();
 
     Buffer* send(bool reliable = false);
-    std::vector<Buffer*>& getReceivedBuffers() { return mReceivedBuffers; }
+    std::vector<Buffer*>& getIncomingBuffers() { return mReceivedBuffers; }
     const boost::asio::ip::udp::endpoint& getEndpoint() { return mEndpoint; }
 
     unsigned getPing() { return mPing; }
@@ -37,9 +37,8 @@ public:
     std::string printInfo();
 
 protected:
-    std::vector<UnreliablePacket>& getUnreliable(unsigned currentTime);
-    std::list<ReliablePacket>& getReliable(unsigned currentTime);
-    void addReceivedBuffer(Buffer*, unsigned currentTime);
+    void addIncomingBuffer(Buffer* buff, unsigned currentTime);
+    void send(unsigned long time, boost::asio::ip::udp::socket& socket);
     
     void sendPing(unsigned currentTime);
     void handlePing();

@@ -88,7 +88,7 @@ void sendMessage()
     else if (count < reliable_count)
     {
         if (count == reliable_count-4) g_replicated_data.mInt.set(10);
-        if (count == reliable_count-3) g_replicated_data.mInt.set(10); // Same value, is not sent
+        if (count == reliable_count-3) g_replicated_data.mInt.set(10); // Same value is not sent twice
         if (count == reliable_count-2) g_replicated_data.mInt.set(11);
 
         auto& b = *(*g_connections.begin())->send(true); // Create new reliable packet
@@ -97,6 +97,7 @@ void sendMessage()
     }
     else
     {
+        // Commented to test connection
         //(*g_connections.begin())->disconnect();
     }
 
@@ -108,7 +109,7 @@ void receiveMessage()
 {
     for (auto cit : g_connections)
     {
-        auto& buffs = cit->getReceivedBuffers();
+        auto& buffs = cit->getIncomingBuffers();
         for (auto buff : buffs)
         {
             auto& b = *buff;
