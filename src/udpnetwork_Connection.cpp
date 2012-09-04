@@ -25,7 +25,8 @@ Buffer* Connection::send(bool reliable/* = false*/)
 
     if (reliable)
     {
-        if (!mReliablePackets.back().wasSent)
+        if (!mReliablePackets.empty() &&
+            !mReliablePackets.back().wasSent)
         {
             // Do not create another packet
             return &mReliablePackets.back().buffer;
@@ -61,16 +62,17 @@ void Connection::send(unsigned long time, boost::asio::ip::udp::socket& socket)
     {
         if (!mUnreliablePackets.empty()) 
         {
-            for (auto id : mAcks) mUnreliablePackets.front().buffer.addAck(id);
+            for (auto id : mAcks) mUnreliablePackets.back().buffer.addAck(id);
         }
         else if (!mReliablePackets.empty())
         {
-            for (auto id : mAcks) mReliablePackets.front().buffer.addAck(id);
+            for (auto id : mAcks) mReliablePackets.back().buffer.addAck(id);
         }
         else
         {
             send(false); // Create new unreliable packet if no packet are queued for sending.
-            for (auto id : mAcks) mUnreliablePackets.front().buffer.addAck(id);
+            std::cout<<"mUnreliablePackets.size()="<<mUnreliablePackets.size()<<std::endl;
+            for (auto id : mAcks) mUnreliablePackets.back().buffer.addAck(id);
         }
 
         mAcks.clear();

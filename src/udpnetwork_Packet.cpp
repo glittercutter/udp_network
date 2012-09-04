@@ -1,6 +1,14 @@
 #include "udpnetwork_Packet.h"
+#include <stdexcept>
 
 using namespace udp_network;
+
+
+#define UDP_NETWORK_CHECK_BUFFER_OVERFLOW(_TYPE) \
+{ \
+    if (mSize + sizeof(_TYPE) >= mData.size()-1) throw std::runtime_error("UDPNETWORK buffer overflow!"); \
+} 
+
 
 /*
  * Buffer
@@ -142,12 +150,14 @@ void Buffer::write__Bool__At(const bool* v, const BoolIterator& it)
 
 void Buffer::write8(const void* v)
 {
+    UDP_NETWORK_CHECK_BUFFER_OVERFLOW(uint8_t);
     mData[mByteIt++] = *(const uint8_t*)v;
     mSize = mByteIt;
 }
 
 Buffer::ByteIterator Buffer::write8It(const void* v)
 {
+    UDP_NETWORK_CHECK_BUFFER_OVERFLOW(uint8_t);
     ByteIterator it(mByteIt);
     mData[mByteIt++] = *(const uint8_t*)v;
     mSize = mByteIt;
@@ -156,6 +166,7 @@ Buffer::ByteIterator Buffer::write8It(const void* v)
 
 void Buffer::write8At(const void* v, const ByteIterator& it)
 {
+    UDP_NETWORK_CHECK_BUFFER_OVERFLOW(uint8_t);
     mData[it.BytePosition] = *(const uint8_t*)v;
 }
 
@@ -163,6 +174,7 @@ void Buffer::write8At(const void* v, const ByteIterator& it)
 
 void Buffer::write16(const void* v)
 {
+    UDP_NETWORK_CHECK_BUFFER_OVERFLOW(uint16_t);
     *((Number_t*)&mData[mByteIt]) = *(const uint16_t*)v;
     mByteIt += sizeof(uint16_t);
     mSize = mByteIt;
@@ -170,6 +182,7 @@ void Buffer::write16(const void* v)
 
 Buffer::ByteIterator Buffer::write16It(const void* v)
 {
+    UDP_NETWORK_CHECK_BUFFER_OVERFLOW(uint16_t);
     ByteIterator it(mByteIt);
     *((Number_t*)&mData[mByteIt]) = *(const uint16_t*)v;
     mByteIt += sizeof(uint16_t);
@@ -179,6 +192,7 @@ Buffer::ByteIterator Buffer::write16It(const void* v)
 
 void Buffer::write16At(const void* v, const ByteIterator& it)
 {
+    UDP_NETWORK_CHECK_BUFFER_OVERFLOW(uint16_t);
     *((Number_t*)&mData[it.BytePosition]) = *(const uint16_t*)v;
 }
 
@@ -186,6 +200,7 @@ void Buffer::write16At(const void* v, const ByteIterator& it)
 
 void Buffer::write32(const void* v)
 {
+    UDP_NETWORK_CHECK_BUFFER_OVERFLOW(uint32_t);
     *((Number_t*)&mData[mByteIt]) = *(const uint32_t*)v;
     mByteIt += sizeof(Number_t);
     mSize = mByteIt;
@@ -193,6 +208,7 @@ void Buffer::write32(const void* v)
 
 Buffer::ByteIterator Buffer::write32It(const void* v)
 {
+    UDP_NETWORK_CHECK_BUFFER_OVERFLOW(uint32_t);
     ByteIterator it(mByteIt);
     *((Number_t*)&mData[mByteIt]) = *(const uint32_t*)v;
     mByteIt += sizeof(Number_t);
@@ -202,6 +218,7 @@ Buffer::ByteIterator Buffer::write32It(const void* v)
 
 void Buffer::write32At(const void* v, const ByteIterator& it)
 {
+    UDP_NETWORK_CHECK_BUFFER_OVERFLOW(uint32_t);
     *((Number_t*)&mData[it.BytePosition]) = *(const uint32_t*)v;
 }
 
@@ -209,6 +226,7 @@ void Buffer::write32At(const void* v, const ByteIterator& it)
 
 void Buffer::writeFloat(const float* v)
 {
+    UDP_NETWORK_CHECK_BUFFER_OVERFLOW(float);
     *((float*)&mData[mByteIt]) = *v;
     mByteIt += sizeof(Number_t);
     mSize = mByteIt;
@@ -216,6 +234,7 @@ void Buffer::writeFloat(const float* v)
 
 Buffer::ByteIterator Buffer::writeFloatIt(const float* v)
 {
+    UDP_NETWORK_CHECK_BUFFER_OVERFLOW(float);
     ByteIterator it(mByteIt);
     *((float*)&mData[mByteIt]) = *v;
     mByteIt += sizeof(Number_t);
@@ -225,6 +244,7 @@ Buffer::ByteIterator Buffer::writeFloatIt(const float* v)
 
 void Buffer::writeFloatAt(const float* v, const ByteIterator& it)
 {
+    UDP_NETWORK_CHECK_BUFFER_OVERFLOW(float);
     *((float*)&mData[it.BytePosition]) = *v;
 }
 
